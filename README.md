@@ -21,7 +21,7 @@ Browsers block loading the `.db` from `file://`. Use VS Code Live Server, or:
 
     python -m http.server 8000
 
-then open (http://127.0.0.1:5500/index.html#projects)
+then open ([http://127.0.0.1:5500/index.html#projects)](https://angelodalezamora-boop.github.io/Campus-Caf-Sales-Database/)
 
 ## Testing notes
 - All queries run without errors and foreign keys check clean (`PRAGMA foreign_key_check`).
