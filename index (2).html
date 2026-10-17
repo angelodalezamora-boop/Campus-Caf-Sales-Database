@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project 2 · Campus Café Sales Database</title>
+<meta name="description" content="A normalized SQLite sales database with live SQL queries, charts and data interpretation, running entirely in the browser.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 68'%3E%3Cpath d='M32 6 54 13v21C54 46 45 55 32 61 19 55 10 46 10 34V13z' fill='%231a2a6c' stroke='%23f0b90b' stroke-width='3'/%3E%3Cpath d='M32 6 54 13v9H10v-9z' fill='%23b4232c'/%3E%3Cpath d='M26 31 19 38l7 7M38 31l7 7-7 7M35 29l-6 18' fill='none' stroke='%23f0b90b' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg:#f5f6fb; --surface:#fff; --surface-2:#eceef8; --fg:#10173a; --muted:#566086; --line:#d6daec;
+  --link:#1a2a6c; --red:#b4232c; --gold:#f0b90b; --on-gold:#0f1a4d; --hero-bg:#0f1a4d; --hero-fg:#f4f5fc; --hero-muted:#b9c0e6;
+  --bar:#1a2a6c; --bar-2:#b4232c; --good:#1f7a4d;
+  --grad:linear-gradient(120deg,#f0b90b 0%,#ff8a4c 55%,#ef4f6a 100%);
+  --glow:0 18px 50px -18px rgba(26,42,108,.35);
+  --f-display:"Source Serif 4",Georgia,serif; --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme:dark; --bg:#0a1030; --surface:#121a45; --surface-2:#1a2457; --fg:#eef0fb; --muted:#a3acd6; --line:#2a3570; --link:#9fb0ff; --red:#ff7a80; --bar:#f0b90b; --bar-2:#ff7a80; --good:#6fe0a6; --glow:0 18px 50px -18px rgba(0,0,0,.7); }
+}
+:root[data-theme="dark"] { color-scheme:dark; --bg:#0a1030; --surface:#121a45; --surface-2:#1a2457; --fg:#eef0fb; --muted:#a3acd6; --line:#2a3570; --link:#9fb0ff; --red:#ff7a80; --bar:#f0b90b; --bar-2:#ff7a80; --good:#6fe0a6; --glow:0 18px 50px -18px rgba(0,0,0,.7); }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 1rem/1.6 var(--f-body)}
+a{color:var(--link)}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.15;text-wrap:balance}
+p{margin:0}
+.wrap{max-width:1080px;margin-inline:auto;padding-inline:16px}
+@media(min-width:720px){.wrap{padding-inline:28px}}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--f-mono)}
+.lbl{display:block;font:500 .72rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* top bar + hero */
+.top{background:var(--hero-bg);border-bottom:2px solid var(--red)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;min-height:54px;gap:12px}
+.top a{color:var(--hero-fg);text-decoration:none;font-weight:600;font-size:.9rem;display:inline-flex;gap:8px;align-items:center}
+.top a:hover{color:var(--gold)}
+.hero{background:var(--hero-bg);color:var(--hero-fg);padding-block:48px 56px;position:relative;overflow:hidden;
+  background-image:radial-gradient(560px 340px at 88% 0%,rgba(239,79,106,.28),transparent 65%),radial-gradient(520px 340px at 0% 100%,rgba(240,185,11,.2),transparent 65%),linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:auto,auto,44px 44px,44px 44px}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:4px;background:var(--grad)}
+.tag{display:inline-block;font:500 .75rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(240,185,11,.45);border-radius:999px;padding:5px 12px;background:rgba(240,185,11,.08)}
+.hero h1{font-size:clamp(2rem,6vw,3.4rem);margin-top:16px}
+.hero p.lead{margin-top:14px;max-width:62ch;color:var(--hero-muted);font-size:1.05rem}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.badge{font:500 .78rem var(--f-mono);padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;cursor:pointer;font:600 .8rem var(--f-body);letter-spacing:.05em;text-transform:uppercase;padding:11px 18px;border-radius:999px;border:2px solid var(--gold);background:transparent;color:inherit;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(0,0,0,.5)}
+.btn.primary{background:var(--grad);border-color:transparent;color:#1a1200}
+.btn.line{color:var(--fg);border-color:var(--line);background:var(--surface)}
+.btn.line:hover{border-color:var(--link);color:var(--link)}
+.btn[disabled]{opacity:.5;cursor:wait}
+
+/* sections */
+section{padding-block:56px 8px}
+.head{margin-bottom:24px;display:grid;gap:8px}
+.head h2{font-size:clamp(1.5rem,3.5vw,2.1rem)}
+.head h2::after{content:"";display:block;width:56px;height:4px;margin-top:12px;border-radius:4px;background:var(--grad)}
+.head p{color:var(--muted);max-width:66ch}
+.card{background:var(--surface);border-radius:16px;padding:22px;box-shadow:0 0 0 1px var(--line),var(--glow);min-width:0}
+.card h3{font-size:1.15rem;margin-bottom:4px}
+.card .sub{color:var(--muted);font-size:.9rem;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:20px}
+
+/* status */
+#status{padding:16px 20px;border-radius:12px;background:var(--surface-2);color:var(--muted);margin-top:28px}
+#status.err{background:#fde8ea;color:#7a1219}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #status.err{background:#3a1218;color:#ffb3b8}}
+#status code{font-family:var(--f-mono)}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:16px}
+.kpi{background:var(--surface);border-radius:16px;padding:18px 20px;box-shadow:0 0 0 1px var(--line);border-top:4px solid var(--gold)}
+.kpi b{display:block;font:700 1.9rem var(--f-display);margin-top:4px}
+.kpi small{color:var(--muted)}
+
+/* charts */
+.bars{display:grid;gap:9px}
+.bar-row{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) auto;gap:12px;align-items:center;font-size:.9rem}
+.bar-row .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{height:14px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--bar),var(--bar-2));width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.bar-row .v{font:500 .8rem var(--f-mono);color:var(--muted);min-width:70px;text-align:right}
+@media(max-width:520px){.bar-row{grid-template-columns:minmax(0,100px) minmax(0,1fr) auto}}
+.cols{display:flex;align-items:flex-end;gap:6px;height:190px;padding-top:8px}
+.col{flex:1;display:grid;grid-template-rows:1fr auto auto;gap:4px;height:100%;text-align:center;min-width:0}
+.col .stack{display:flex;align-items:flex-end}
+.col .stack i{display:block;width:100%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--bar-2),var(--bar));height:0;transition:height .8s cubic-bezier(.2,.8,.2,1)}
+.col span{font:500 .7rem var(--f-mono);color:var(--muted)}
+.col em{font-style:normal;font:500 .68rem var(--f-mono);color:var(--fg)}
+svg.line{width:100%;height:auto;display:block}
+svg.line text{font:500 11px var(--f-mono);fill:var(--muted)}
+svg.line .grid{stroke:var(--line);stroke-width:1}
+svg.line .ln{fill:none;stroke:var(--bar-2);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+svg.line .area{fill:var(--bar-2);opacity:.12}
+svg.line circle{fill:var(--surface);stroke:var(--bar-2);stroke-width:2.5}
+
+/* insights */
+.insights{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.insights li{padding:14px 16px 14px 18px;background:var(--surface);border-radius:12px;box-shadow:0 0 0 1px var(--line);border-left:4px solid var(--gold)}
+.caveat{margin-top:14px;color:var(--muted);font-size:.9rem}
+
+/* schema */
+.tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.tbl{background:var(--surface);border-radius:14px;box-shadow:0 0 0 1px var(--line);overflow:hidden}
+.tbl h4{margin:0;padding:10px 14px;background:var(--hero-bg);color:var(--hero-fg);font:600 .9rem var(--f-mono);display:flex;justify-content:space-between;gap:8px}
+.tbl h4 span{color:var(--gold);font-weight:500}
+.tbl ul{list-style:none;margin:0;padding:6px 0}
+.tbl li{display:flex;justify-content:space-between;gap:10px;padding:5px 14px;font:500 .8rem var(--f-mono)}
+.tbl li:nth-child(even){background:var(--surface-2)}
+.tbl li em{font-style:normal;color:var(--muted)}
+.tbl li b{color:var(--red);font-weight:600}
+.rels{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+.rel{font:500 .78rem var(--f-mono);padding:6px 12px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.rel b{color:var(--red)}
+
+/* playground */
+.pg{display:grid;gap:14px}
+.pg-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;max-width:100%}
+textarea{width:100%;min-height:170px;font:500 .85rem/1.6 var(--f-mono);color:var(--hero-fg);background:var(--hero-bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;resize:vertical}
+.msg{font-size:.9rem;color:var(--muted);min-height:1.4em}
+.msg.err{color:var(--red)}
+.tablewrap{overflow:auto;max-height:420px;border-radius:12px;box-shadow:0 0 0 1px var(--line);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{position:sticky;top:0;text-align:left;font:500 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 14px;background:var(--surface-2);white-space:nowrap}
+td{padding:9px 14px;border-top:1px solid var(--line);white-space:nowrap}
+td.num{text-align:right;font-family:var(--f-mono)}
+tbody tr:hover td{background:var(--surface-2)}
+
+footer{margin-top:64px;background:var(--hero-bg);color:var(--hero-muted);padding-block:28px;position:relative;font-size:.9rem}
+footer::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--grad)}
+footer a{color:var(--gold)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="wrap">
+  <a href="../index.html#projects">← Back to portfolio</a>
+  <span class="mono" style="color:var(--hero-muted);font-size:.78rem">Angelo Dale N. Zamora · BSIT</span>
+</div></div>
+
+<header class="hero"><div class="wrap">
+  <span class="tag">Project 2 · Data / Database</span>
+  <h1>Campus Café Sales Database</h1>
+  <p class="lead">A normalized SQLite database of café orders, with SQL analysis, charts and data interpretation. Everything below is computed live in your browser from the real database file.</p>
+  <div class="badges"><span class="badge">SQLite</span><span class="badge">SQL (JOINs, aggregates)</span><span class="badge">3NF design</span><span class="badge">Python (data generator)</span><span class="badge">sql.js (WebAssembly)</span></div>
+  <div class="btns">
+    <a class="btn primary" href="#dashboard">See the analysis</a>
+    <a class="btn" href="#playground" style="color:var(--hero-fg)">Run your own SQL</a>
+    <a class="btn" href="cafe_sales.db" download style="color:var(--hero-fg)">Download .db</a>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <div id="status" role="status" aria-live="polite">Loading the database…</div>
+
+  <section id="dashboard" hidden>
+    <div class="head"><h2>Business dashboard</h2><p>Every number comes from a SQL query on <span class="mono">cafe_sales.db</span>. The same queries are in the playground below.</p></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2" style="margin-top:20px">
+      <div class="card"><h3>Monthly revenue</h3><p class="sub">Q2 · line chart, ₱ per month</p><div id="c-month"></div></div>
+      <div class="card"><h3>Peak hours</h3><p class="sub">Q5 · orders by hour of day</p><div id="c-hours"></div></div>
+      <div class="card"><h3>Top 10 products</h3><p class="sub">Q3 · revenue by product</p><div class="bars" id="c-prod"></div></div>
+      <div class="card"><h3>Profit by category</h3><p class="sub">Q4 · profit in ₱ and margin %</p><div class="bars" id="c-cat"></div></div>
+      <div class="card"><h3>Payment methods</h3><p class="sub">Q7 · share of orders</p><div class="bars" id="c-pay"></div></div>
+      <div class="card"><h3>Sales by weekday</h3><p class="sub">Q6 · revenue (closed Sundays)</p><div class="bars" id="c-day"></div></div>
+    </div>
+  </section>
+
+  <section id="interpretation" hidden>
+    <div class="head"><h2>Data interpretation</h2><p>What the results say and what the café could do about it. These sentences are generated from the query results, so they always match the data.</p></div>
+    <ul class="insights" id="insights"></ul>
+    <p class="caveat"><b>Note:</b> the data is sample data generated for this project with a fixed random seed (<span class="mono">build_db.py</span>). It is not real sales, so the interpretation shows analysis skill, not real business findings.</p>
+  </section>
+
+  <section id="design" hidden>
+    <div class="head"><h2>Database design</h2><p>Six tables in third normal form. Lookup values (categories, payment methods) are stored once, and the price at the time of sale is kept in <span class="mono">order_items</span> so history stays correct if menu prices change.</p></div>
+    <div class="tables" id="tables"></div>
+    <div class="rels" id="rels"></div>
+  </section>
+
+  <section id="playground" hidden>
+    <div class="head"><h2>SQL playground</h2><p>Pick a prepared query or write your own <span class="mono">SELECT</span>. The database is loaded in memory, so nothing you run can change the file.</p></div>
+    <div class="card pg">
+      <div class="pg-bar">
+        <label for="preset" class="lbl" style="margin:0">Prepared query</label>
+        <select id="preset"></select>
+        <button class="btn primary" id="run" type="button">Run query</button>
+        <button class="btn line" id="csv" type="button">Download CSV</button>
+      </div>
+      <textarea id="sql" spellcheck="false" aria-label="SQL query"></textarea>
+      <div class="msg" id="msg"></div>
+      <div class="tablewrap"><table id="result"></table></div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <p>Source files: <a href="cafe_sales.db" download>cafe_sales.db</a> · <a href="schema.sql">schema.sql</a> · <a href="queries.sql">queries.sql</a> · <a href="build_db.py">build_db.py</a></p>
+  <p style="margin-top:6px">I learned this. I built this. Here is the evidence.</p>
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+<script>
+"use strict";
+const SQLJS_BASE = "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/";
+const DB_FILE = "cafe_sales.db";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const peso = n => "₱" + Number(n).toLocaleString("en-PH", { maximumFractionDigits: 0 });
+const num = n => Number(n).toLocaleString("en-PH");
+
+/* Prepared queries (same as queries.sql) */
+const QUERIES = [
+  ["Q1 · Totals and average order value", `SELECT ROUND(SUM(oi.quantity * oi.unit_price), 2) AS total_revenue,
+       COUNT(DISTINCT o.order_id) AS total_orders,
+       ROUND(SUM(oi.quantity * oi.unit_price) * 1.0 / COUNT(DISTINCT o.order_id), 2) AS avg_order_value
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id;`],
+  ["Q2 · Monthly revenue trend", `SELECT strftime('%Y-%m', o.ordered_at) AS month,
+       ROUND(SUM(oi.quantity * oi.unit_price), 2) AS revenue,
+       COUNT(DISTINCT o.order_id) AS orders
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id
+GROUP BY month
+ORDER BY month;`],
+  ["Q3 · Top 10 products by revenue", `SELECT p.name, c.name AS category,
+       SUM(oi.quantity) AS units_sold,
+       ROUND(SUM(oi.quantity * oi.unit_price), 2) AS revenue
+FROM order_items oi
+JOIN products p   ON p.product_id = oi.product_id
+JOIN categories c ON c.category_id = p.category_id
+GROUP BY p.product_id
+ORDER BY revenue DESC
+LIMIT 10;`],
+  ["Q4 · Profit and margin by category", `SELECT c.name AS category,
+       ROUND(SUM(oi.quantity * oi.unit_price), 2) AS revenue,
+       ROUND(SUM(oi.quantity * (oi.unit_price - p.unit_cost)), 2) AS profit,
+       ROUND(100.0 * SUM(oi.quantity * (oi.unit_price - p.unit_cost))
+             / SUM(oi.quantity * oi.unit_price), 1) AS margin_pct
+FROM order_items oi
+JOIN products p   ON p.product_id = oi.product_id
+JOIN categories c ON c.category_id = p.category_id
+GROUP BY c.category_id
+ORDER BY profit DESC;`],
+  ["Q5 · Orders by hour of day", `SELECT CAST(strftime('%H', ordered_at) AS INTEGER) AS hour_of_day,
+       COUNT(*) AS orders
+FROM orders
+GROUP BY hour_of_day
+ORDER BY hour_of_day;`],
+  ["Q6 · Revenue by weekday", `SELECT CASE strftime('%w', o.ordered_at)
+         WHEN '1' THEN 'Mon' WHEN '2' THEN 'Tue' WHEN '3' THEN 'Wed'
+         WHEN '4' THEN 'Thu' WHEN '5' THEN 'Fri' WHEN '6' THEN 'Sat' END AS weekday,
+       ROUND(SUM(oi.quantity * oi.unit_price), 2) AS revenue
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id
+GROUP BY strftime('%w', o.ordered_at)
+ORDER BY strftime('%w', o.ordered_at);`],
+  ["Q7 · Payment method share", `SELECT pm.name AS payment_method,
+       COUNT(*) AS orders,
+       ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM orders), 1) AS share_pct
+FROM orders o
+JOIN payment_methods pm ON pm.payment_id = o.payment_id
+GROUP BY pm.payment_id
+ORDER BY orders DESC;`],
+  ["Q8 · Spending by customer type", `SELECT cu.customer_type,
+       COUNT(DISTINCT cu.customer_id) AS customers,
+       ROUND(SUM(oi.quantity * oi.unit_price), 2) AS revenue,
+       ROUND(SUM(oi.quantity * oi.unit_price) / COUNT(DISTINCT cu.customer_id), 2) AS revenue_per_customer
+FROM customers cu
+JOIN orders o       ON o.customer_id = cu.customer_id
+JOIN order_items oi ON oi.order_id = o.order_id
+GROUP BY cu.customer_type
+ORDER BY revenue DESC;`],
+  ["Q9 · Top 10 customers", `SELECT cu.full_name, cu.customer_type,
+       COUNT(DISTINCT o.order_id) AS orders,
+       ROUND(SUM(oi.quantity * oi.unit_price), 2) AS total_spent
+FROM customers cu
+JOIN orders o       ON o.customer_id = cu.customer_id
+JOIN order_items oi ON oi.order_id = o.order_id
+GROUP BY cu.customer_id
+ORDER BY total_spent DESC
+LIMIT 10;`],
+  ["Q10 · Products bought together", `SELECT a.name AS product_a, b.name AS product_b, COUNT(*) AS times_together
+FROM order_items x
+JOIN order_items y ON y.order_id = x.order_id AND x.product_id < y.product_id
+JOIN products a ON a.product_id = x.product_id
+JOIN products b ON b.product_id = y.product_id
+GROUP BY x.product_id, y.product_id
+ORDER BY times_together DESC
+LIMIT 10;`]
+];
+const Q = i => QUERIES[i][1];
+
+let db = null;
+let lastResult = null;
+
+function exec(sql) {
+  const r = db.exec(sql);
+  if (!r.length) return { columns: [], rows: [] };
+  const { columns, values } = r[0];
+  return { columns, rows: values.map(v => Object.fromEntries(v.map((x, i) => [columns[i], x]))), values };
+}
+
+function status(msg, isErr) {
+  const s = $("status");
+  s.hidden = false;
+  s.className = isErr ? "err" : "";
+  s.innerHTML = msg;
+}
+
+/* ---------- charts ---------- */
+function hbars(el, rows, labelKey, valueKey, fmt, extra) {
+  const max = Math.max(...rows.map(r => r[valueKey]), 1);
+  el.innerHTML = rows.map(r => `<div class="bar-row">
+    <span class="n" title="${esc(r[labelKey])}">${esc(r[labelKey])}</span>
+    <span class="track"><span class="fill" style="display:block" data-w="${(r[valueKey] / max * 100).toFixed(1)}"></span></span>
+    <span class="v">${fmt(r[valueKey])}${extra ? " · " + extra(r) : ""}</span></div>`).join("");
+  requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll(".fill").forEach(f => { f.style.width = f.dataset.w + "%"; })));
+}
+
+function columns(el, rows, labelKey, valueKey) {
+  const max = Math.max(...rows.map(r => r[valueKey]), 1);
+  el.innerHTML = `<div class="cols" role="img" aria-label="Column chart of ${esc(valueKey)} by ${esc(labelKey)}">${rows.map(r => `<div class="col">
+    <div class="stack"><i data-h="${(r[valueKey] / max * 100).toFixed(1)}" title="${esc(r[labelKey])}:00 · ${num(r[valueKey])} orders"></i></div>
+    <em>${num(r[valueKey])}</em><span>${String(r[labelKey]).padStart(2, "0")}</span></div>`).join("")}</div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll("i").forEach(b => { b.style.height = b.dataset.h + "%"; })));
+}
+
+function lineChart(el, rows, labelKey, valueKey) {
+  const W = 520, H = 250, L = 52, R = 16, T = 16, B = 34;
+  const vals = rows.map(r => r[valueKey]);
+  const min = 0, max = Math.max(...vals) * 1.12;
+  const x = i => L + (rows.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (rows.length - 1));
+  const y = v => T + (1 - (v - min) / (max - min)) * (H - T - B);
+  const pts = rows.map((r, i) => [x(i), y(r[valueKey])]);
+  const grid = [0, .25, .5, .75, 1].map(f => {
+    const v = max * f, yy = y(v);
+    return `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 8}" y="${yy + 4}" text-anchor="end">${Math.round(v / 1000)}k</text>`;
+  }).join("");
+  const line = pts.map(p => p.join(",")).join(" ");
+  const area = `${L},${H - B} ${line} ${pts[pts.length - 1][0]},${H - B}`;
+  const labels = rows.map((r, i) => `<text x="${x(i)}" y="${H - 10}" text-anchor="middle">${esc(String(r[labelKey]).slice(5))}</text>`).join("");
+  const dots = pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="4.5"><title>${esc(rows[i][labelKey])}: ${peso(rows[i][valueKey])}</title></circle>`).join("");
+  el.innerHTML = `<svg class="line" viewBox="0 0 ${W} ${H}" role="img" aria-label="Line chart of monthly revenue">${grid}<polygon class="area" points="${area}"/><polyline class="ln" points="${line}"/>${dots}${labels}</svg>`;
+}
+
+/* ---------- dashboard ---------- */
+function renderDashboard() {
+  const kpi = exec(Q(0)).rows[0];
+  const items = exec(`SELECT COUNT(*) c FROM order_items`).rows[0].c;
+  const custs = exec(`SELECT COUNT(DISTINCT customer_id) c FROM orders`).rows[0].c;
+  const profit = exec(`SELECT SUM(oi.quantity*(oi.unit_price-p.unit_cost)) AS p FROM order_items oi JOIN products p ON p.product_id=oi.product_id`).rows[0].p;
+  $("kpis").innerHTML = [
+    ["Total revenue", peso(kpi.total_revenue), "all orders"],
+    ["Total orders", num(kpi.total_orders), num(items) + " order lines"],
+    ["Average order value", "₱" + Number(kpi.avg_order_value).toFixed(2), "per order"],
+    ["Gross profit", peso(profit), (100 * profit / kpi.total_revenue).toFixed(1) + "% margin"],
+    ["Active customers", num(custs), "ordered at least once"]
+  ].map(([l, v, s]) => `<div class="kpi"><span class="lbl">${l}</span><b>${v}</b><small>${s}</small></div>`).join("");
+
+  const month = exec(Q(1)).rows;
+  lineChart($("c-month"), month, "month", "revenue");
+  const hours = exec(Q(4)).rows;
+  columns($("c-hours"), hours, "hour_of_day", "orders");
+  const prod = exec(Q(2)).rows;
+  hbars($("c-prod"), prod, "name", "revenue", peso);
+  const cat = exec(Q(3)).rows;
+  hbars($("c-cat"), cat, "category", "profit", peso, r => r.margin_pct + "%");
+  const pay = exec(Q(6)).rows;
+  hbars($("c-pay"), pay, "payment_method", "orders", num, r => r.share_pct + "%");
+  const day = exec(Q(5)).rows;
+  hbars($("c-day"), day, "weekday", "revenue", peso);
+
+  return { kpi, month, hours, prod, cat, pay, day, profit };
+}
+
+/* ---------- interpretation (generated from results) ---------- */
+function renderInsights(d) {
+  const best = d.month.reduce((a, b) => b.revenue > a.revenue ? b : a);
+  const worst = d.month.reduce((a, b) => b.revenue < a.revenue ? b : a);
+  const peak = d.hours.reduce((a, b) => b.orders > a.orders ? b : a);
+  const quiet = d.hours.reduce((a, b) => b.orders < a.orders ? b : a);
+  const topProd = d.prod[0];
+  const topCat = d.cat[0];
+  const bestMargin = d.cat.reduce((a, b) => b.margin_pct > a.margin_pct ? b : a);
+  const worstMargin = d.cat.reduce((a, b) => b.margin_pct < a.margin_pct ? b : a);
+  const topPay = d.pay[0];
+  const bestDay = d.day.reduce((a, b) => b.revenue > a.revenue ? b : a);
+  const worstDay = d.day.reduce((a, b) => b.revenue < a.revenue ? b : a);
+  const hh = h => { const hr = h % 12 || 12; return hr + ":00 " + (h < 12 ? "AM" : "PM"); };
+  const mn = m => new Date(m + "-01T00:00:00").toLocaleString("en", { month: "long" });
+  const li = [
+    `<b>Seasonality.</b> ${mn(best.month)} was the strongest month at ${peso(best.revenue)} and ${mn(worst.month)} the weakest at ${peso(worst.revenue)}. A gap this large suggests demand follows the school calendar, so staffing and stock should too.`,
+    `<b>Peak hours.</b> The café is busiest around ${hh(peak.hour_of_day)} (${num(peak.orders)} orders) and quietest at ${hh(quiet.hour_of_day)} (${num(quiet.orders)}). Schedule the most staff and prepare popular items before the rush.`,
+    `<b>Best seller.</b> ${esc(topProd.name)} earned the most revenue (${peso(topProd.revenue)} from ${num(topProd.units_sold)} units). Protect its supply and keep it visible on the menu.`,
+    `<b>Profit versus revenue.</b> ${esc(topCat.category)} brings in the most profit (${peso(topCat.profit)}), but ${esc(bestMargin.category)} has the highest margin (${bestMargin.margin_pct}%) while ${esc(worstMargin.category)} has the lowest (${worstMargin.margin_pct}%). Promoting high-margin items is the cheapest way to raise profit.`,
+    `<b>Payments.</b> ${esc(topPay.payment_method)} is the most used method (${topPay.share_pct}% of orders). Offering a second digital wallet or a small wallet discount could speed up queues.`,
+    `<b>Weekdays.</b> ${esc(bestDay.weekday)} is the best sales day and ${esc(worstDay.weekday)} the weakest. A targeted promotion on the slowest day could even out the week.`
+  ];
+  $("insights").innerHTML = li.map(t => `<li>${t}</li>`).join("");
+}
+
+/* ---------- schema ---------- */
+function renderSchema() {
+  const tables = exec(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).rows.map(r => r.name);
+  const rels = [];
+  $("tables").innerHTML = tables.map(t => {
+    const cols = exec(`PRAGMA table_info(${t})`).rows;
+    const fks = exec(`PRAGMA foreign_key_list(${t})`).rows;
+    fks.forEach(f => rels.push(`${t}.${f.from} → ${f.table}.${f.to}`));
+    const fkSet = new Set(fks.map(f => f.from));
+    const count = exec(`SELECT COUNT(*) c FROM ${t}`).rows[0].c;
+    return `<div class="tbl"><h4>${esc(t)}<span>${num(count)} rows</span></h4><ul>${cols.map(c =>
+      `<li><span>${c.pk ? "<b>PK</b> " : fkSet.has(c.name) ? "<b>FK</b> " : ""}${esc(c.name)}</span><em>${esc(c.type)}</em></li>`).join("")}</ul></div>`;
+  }).join("");
+  $("rels").innerHTML = rels.map(r => `<span class="rel">${esc(r).replace("→", "<b>→</b>")}</span>`).join("");
+}
+
+/* ---------- playground ---------- */
+function renderTable(res) {
+  const t = $("result");
+  if (!res.columns.length) { t.innerHTML = ""; return; }
+  const isNum = res.columns.map((_, i) => res.values.every(v => typeof v[i] === "number" || v[i] === null));
+  t.innerHTML = `<thead><tr>${res.columns.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${res.values.slice(0, 500).map(v =>
+    `<tr>${v.map((x, i) => `<td class="${isNum[i] ? "num" : ""}">${x === null ? "NULL" : esc(typeof x === "number" ? x.toLocaleString("en-PH", { maximumFractionDigits: 2 }) : x)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+}
+function runUserQuery() {
+  const sql = $("sql").value.trim();
+  const msg = $("msg");
+  msg.className = "msg";
+  if (!/^(select|with|pragma\s+table_info)\b/i.test(sql)) { msg.className = "msg err"; msg.textContent = "Only SELECT queries are allowed here."; return; }
+  if (/\b(insert|update|delete|drop|alter|create|replace|attach|detach|vacuum)\b/i.test(sql.replace(/'[^']*'/g, ""))) { msg.className = "msg err"; msg.textContent = "This playground is read-only."; return; }
+  try {
+    const t0 = performance.now();
+    const res = exec(sql);
+    lastResult = res;
+    renderTable(res);
+    const n = res.rows.length;
+    msg.textContent = `${num(n)} row${n === 1 ? "" : "s"}${n > 500 ? " (showing first 500)" : ""} in ${(performance.now() - t0).toFixed(1)} ms`;
+  } catch (e) {
+    msg.className = "msg err"; msg.textContent = "SQL error: " + e.message; lastResult = null; $("result").innerHTML = "";
+  }
+}
+function downloadCsv() {
+  if (!lastResult || !lastResult.columns.length) { $("msg").textContent = "Run a query first."; return; }
+  const q = v => v === null ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+  const csv = [lastResult.columns.map(q).join(","), ...lastResult.values.map(r => r.map(q).join(","))].join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "query_result.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function setupPlayground() {
+  $("preset").innerHTML = QUERIES.map((q, i) => `<option value="${i}">${esc(q[0])}</option>`).join("");
+  const load = () => { $("sql").value = Q(+$("preset").value); runUserQuery(); };
+  $("preset").addEventListener("change", load);
+  $("run").addEventListener("click", runUserQuery);
+  $("csv").addEventListener("click", downloadCsv);
+  $("sql").addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") runUserQuery(); });
+  load();
+}
+
+/* ---------- boot ---------- */
+async function boot() {
+  try {
+    if (typeof initSqlJs !== "function") throw new Error("The SQL engine (sql.js) could not be loaded. Check your internet connection.");
+    const SQL = await initSqlJs({ locateFile: f => SQLJS_BASE + f });
+    const resp = await fetch(DB_FILE);
+    if (!resp.ok) throw new Error(`Could not load ${DB_FILE} (HTTP ${resp.status}).`);
+    db = new SQL.Database(new Uint8Array(await resp.arrayBuffer()));
+    db.exec("PRAGMA foreign_keys = ON;");
+    const d = renderDashboard();
+    renderInsights(d);
+    renderSchema();
+    setupPlayground();
+    ["dashboard", "interpretation", "design", "playground"].forEach(id => { $(id).hidden = false; });
+    $("status").hidden = true;
+  } catch (e) {
+    const local = location.protocol === "file:";
+    status(`<b>Could not load the database.</b> ${esc(e.message)}${local ? `<br>You opened this page directly from a file. Browsers block loading <code>${DB_FILE}</code> that way. Open it through a local server (for example the VS Code <i>Live Server</i> extension) or GitHub Pages.` : ""}`, true);
+  }
+}
+boot();
+</script>
+</body>
+</html>
